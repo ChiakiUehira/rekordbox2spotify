@@ -1,6 +1,7 @@
 import type { EnrichedTrack, MatchResult, SpotifyTrack } from "../types.ts";
 import { distance } from "fastest-levenshtein";
 import { normalizeForMatching } from "./normalize.ts";
+import { spotifyRequest } from "../spotify/client.ts";
 
 const SPOTIFY_BASE = "https://api.spotify.com/v1";
 
@@ -22,11 +23,12 @@ export async function tryIsrcStrategy(
 
   const q = encodeURIComponent(`isrc:${track.isrcFromId3}`);
   const url = `${SPOTIFY_BASE}/search?q=${q}&type=track&limit=5`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { tracks: { items: SpotifyTrack[] } };
+  let data: { tracks: { items: SpotifyTrack[] } };
+  try {
+    data = await spotifyRequest<{ tracks: { items: SpotifyTrack[] } }>(url, { method: "GET", token: accessToken });
+  } catch {
+    return null;
+  }
   const hit = data.tracks.items[0];
   if (!hit) return null;
 
@@ -52,12 +54,12 @@ async function searchByName(
 ): Promise<SpotifyTrack[]> {
   const query = buildSearchQuery(track.title, track.artist);
   const url = `${SPOTIFY_BASE}/search?q=${encodeURIComponent(query).replace(/%20/g, "+")}&type=track&limit=10`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) return [];
-  const data = (await res.json()) as { tracks: { items: SpotifyTrack[] } };
-  return data.tracks.items;
+  try {
+    const data = await spotifyRequest<{ tracks: { items: SpotifyTrack[] } }>(url, { method: "GET", token: accessToken });
+    return data.tracks.items;
+  } catch {
+    return [];
+  }
 }
 
 export async function tryExactNameStrategy(

@@ -36,15 +36,28 @@ export async function readRekordboxXml(path: string): Promise<XmlVerifyResult> {
   }
 
   const tracks = extractTracks(parsed);
+  const playlists = extractPlaylists(parsed);
+  const intelligentPlaylists = playlists.filter(p => p.isIntelligent);
+  const folderDepthMax = Math.max(0, ...playlists.map(p => p.path.length));
+  const sampleStructure = playlists
+    .filter(p => p.path.length > 0)
+    .slice(0, 5)
+    .map(p => `${p.path.join(" > ")} > ${p.name}`);
 
   return {
     path, status: "ok",
-    playlistCount: { total: 0, normal: 0, intelligent: 0 },
+    playlistCount: {
+      total: playlists.length,
+      normal: playlists.length - intelligentPlaylists.length,
+      intelligent: intelligentPlaylists.length,
+    },
     trackCount: tracks.length,
-    intelligentSample: [],
+    intelligentSample: intelligentPlaylists.slice(0, 3).map(p => ({
+      name: p.name, path: p.path, trackIdCount: p.trackIds.length,
+    })),
     isrcCoverage: { withIsrc: 0, total: tracks.length, ratio: 0 },
     metadataCoverage: EMPTY_COVERAGE,
-    folderDepth: { max: 0, sampleStructure: [] },
+    folderDepth: { max: folderDepthMax, sampleStructure },
   };
 }
 
@@ -61,4 +74,32 @@ function extractTracks(parsed: any): Track[] {
     bpm: t["@_AverageBpm"] ? Number(t["@_AverageBpm"]) : undefined,
     key: t["@_Tonality"] ? String(t["@_Tonality"]) : undefined,
   }));
+}
+
+function extractPlaylists(parsed: any): Playlist[] {
+  const root = parsed?.DJ_PLAYLISTS?.PLAYLISTS?.NODE;
+  const rootNode = Array.isArray(root) ? root[0] : root;
+  if (!rootNode) return [];
+  const results: Playlist[] = [];
+  walkNode(rootNode, [], results);
+  return results;
+}
+
+function walkNode(node: any, parentPath: string[], out: Playlist[]): void {
+  const type = String(node?.["@_Type"] ?? "");
+  const name = String(node?.["@_Name"] ?? "");
+  if (type === "1") {
+    const trackChildren = Array.isArray(node?.TRACK) ? node.TRACK : node?.TRACK ? [node.TRACK] : [];
+    const trackIds = trackChildren.map((t: any) => String(t["@_Key"]));
+    out.push({
+      name, path: parentPath, isIntelligent: trackIds.length === 0,
+      trackIds, rawNodeType: type,
+    });
+    return;
+  }
+  if (type === "0") {
+    const childPath = name === "ROOT" ? parentPath : [...parentPath, name];
+    const children = Array.isArray(node?.NODE) ? node.NODE : node?.NODE ? [node.NODE] : [];
+    for (const child of children) walkNode(child, childPath, out);
+  }
 }

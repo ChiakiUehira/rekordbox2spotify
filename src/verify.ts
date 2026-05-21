@@ -26,11 +26,15 @@ export async function runVerify(opts: VerifyOptions): Promise<VerifyExecution> {
     ? await probeRekordboxDb(opts.dbPath)
     : null;
 
-  const partial: VerifyReport = {
+  const base = {
     generatedAt: new Date().toISOString(),
-    xml, db, conclusion: "",
+    xml,
+    db,
   };
-  const report: VerifyReport = { ...partial, conclusion: buildConclusion(partial) };
+  const report: VerifyReport = {
+    ...base,
+    conclusion: buildConclusion({ ...base, conclusion: "" }),
+  };
 
   mkdirSync(opts.outDir, { recursive: true });
   const stamp = report.generatedAt.replace(/[-:T.Z+]/g, "").slice(0, 14);

@@ -35,6 +35,10 @@ export async function readRekordboxXml(path: string): Promise<XmlVerifyResult> {
     return PARSE_ERROR(path, e instanceof Error ? e.message : String(e));
   }
 
+  if (!parsed?.DJ_PLAYLISTS) {
+    return PARSE_ERROR(path, "Not a rekordbox XML: missing <DJ_PLAYLISTS> root element");
+  }
+
   const tracks = extractTracks(parsed);
   const playlists = extractPlaylists(parsed);
   const intelligentPlaylists = playlists.filter(p => p.isIntelligent);

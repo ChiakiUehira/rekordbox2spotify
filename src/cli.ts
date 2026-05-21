@@ -6,6 +6,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { parse as parseYaml } from "yaml";
 import { runVerify } from "./verify.ts";
+import type { VerifyReport } from "./types.ts";
 
 type ConfigYaml = {
   rekordbox?: { xml_path?: string; db_path?: string };
@@ -86,7 +87,7 @@ program
     }
   });
 
-function printDigest(report: any, outputPaths: { md: string; json: string }): void {
+function printDigest(report: VerifyReport, outputPaths: { md: string; json: string }): void {
   const xml = report.xml;
   const db = report.db;
   if (xml) {

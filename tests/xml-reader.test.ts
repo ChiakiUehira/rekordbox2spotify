@@ -70,4 +70,12 @@ describe("readRekordboxXml — error handling", () => {
     expect(result.status).toBe("parse_error");
     expect(result.error).toBeTruthy();
   });
+
+  test("returns parse_error for XML missing DJ_PLAYLISTS root", async () => {
+    const tmpPath = "/tmp/__rb-spot-test-not-rekordbox.xml";
+    await Bun.write(tmpPath, "<foo><bar/></foo>");
+    const result = await readRekordboxXml(tmpPath);
+    expect(result.status).toBe("parse_error");
+    expect(result.error).toContain("DJ_PLAYLISTS");
+  });
 });

@@ -135,7 +135,6 @@ export async function syncPlaylistsToSpotify(args: SyncPlaylistsArgs): Promise<S
   return summary;
 }
 
-import { readRekordboxXml } from "./readers/xml.ts";
 import { getValidAccessToken } from "./spotify/auth.ts";
 import { listMyRBPlaylists, getAllPlaylistTrackUris, getCurrentUserId } from "./spotify/playlist.ts";
 import { matchTrack, type MatchConfig } from "./matcher/index.ts";
@@ -162,12 +161,15 @@ export async function runSync(opts: RunSyncOptions): Promise<SyncSummary> {
   });
   const myUserId = await getCurrentUserId(token);
 
-  const xmlResult = await readRekordboxXml(opts.xmlPath, { ignorePlaylists: opts.ignorePlaylists });
-  if (xmlResult.status !== "ok") {
-    throw new Error(`XML 読み込み失敗: ${xmlResult.status} - ${xmlResult.error ?? ""}`);
+  let tracks: TrackWithLocation[];
+  let playlists: Playlist[];
+  try {
+    const result = await readTracksAndPlaylists(opts.xmlPath, opts.ignorePlaylists);
+    tracks = result.tracks;
+    playlists = result.playlists;
+  } catch (e) {
+    throw new Error(`XML 読み込み失敗: ${e instanceof Error ? e.message : String(e)}`);
   }
-
-  const { tracks, playlists } = await readTracksAndPlaylists(opts.xmlPath, opts.ignorePlaylists);
 
   const scopedTracks = extractPlaylistReferencedTracks(tracks, playlists);
   const enriched = await enrichTracks(scopedTracks);

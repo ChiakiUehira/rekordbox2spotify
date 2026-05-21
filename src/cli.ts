@@ -262,6 +262,10 @@ program
   .description("直近の未マッチ Track CSV を表示")
   .option("--log-dir <dir>", "ログディレクトリ", "./logs")
   .action((opts) => {
+    if (!existsSync(opts.logDir)) {
+      console.log("未マッチ CSV はまだありません。`rb-spot sync` を実行してください");
+      process.exit(0);
+    }
     const files = readdirSync(opts.logDir)
       .filter((f) => f.startsWith("unmatched_") && f.endsWith(".csv"))
       .sort()

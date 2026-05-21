@@ -36,3 +36,23 @@ describe("readRekordboxXml — playlist extraction", () => {
     expect(result.folderDepth.sampleStructure).toContain("Genre > House");
   });
 });
+
+describe("readRekordboxXml — coverage calculation", () => {
+  test("isrc coverage is 2/5 = 0.4", async () => {
+    const result = await readRekordboxXml(FIXTURE);
+    expect(result.isrcCoverage.withIsrc).toBe(2);
+    expect(result.isrcCoverage.total).toBe(5);
+    expect(result.isrcCoverage.ratio).toBeCloseTo(0.4, 2);
+  });
+
+  test("title and artist coverage is 1.0 (all tracks have them)", async () => {
+    const result = await readRekordboxXml(FIXTURE);
+    expect(result.metadataCoverage.title).toBeCloseTo(1.0, 2);
+    expect(result.metadataCoverage.artist).toBeCloseTo(1.0, 2);
+  });
+
+  test("album coverage is 4/5 = 0.8 (one track has no album)", async () => {
+    const result = await readRekordboxXml(FIXTURE);
+    expect(result.metadataCoverage.album).toBeCloseTo(0.8, 2);
+  });
+});

@@ -44,6 +44,9 @@ export async function readRekordboxXml(path: string): Promise<XmlVerifyResult> {
     .slice(0, 5)
     .map(p => `${p.path.join(" > ")} > ${p.name}`);
 
+  const withIsrc = tracks.filter(t => Boolean(t.isrc)).length;
+  const metadataCoverage = calcCoverage(tracks);
+
   return {
     path, status: "ok",
     playlistCount: {
@@ -55,8 +58,12 @@ export async function readRekordboxXml(path: string): Promise<XmlVerifyResult> {
     intelligentSample: intelligentPlaylists.slice(0, 3).map(p => ({
       name: p.name, path: p.path, trackIdCount: p.trackIds.length,
     })),
-    isrcCoverage: { withIsrc: 0, total: tracks.length, ratio: 0 },
-    metadataCoverage: EMPTY_COVERAGE,
+    isrcCoverage: {
+      withIsrc,
+      total: tracks.length,
+      ratio: tracks.length === 0 ? 0 : withIsrc / tracks.length,
+    },
+    metadataCoverage,
     folderDepth: { max: folderDepthMax, sampleStructure },
   };
 }
@@ -102,4 +109,22 @@ function walkNode(node: any, parentPath: string[], out: Playlist[]): void {
     const children = Array.isArray(node?.NODE) ? node.NODE : node?.NODE ? [node.NODE] : [];
     for (const child of children) walkNode(child, childPath, out);
   }
+}
+
+function calcCoverage(tracks: Track[]): XmlVerifyResult["metadataCoverage"] {
+  if (tracks.length === 0) return EMPTY_COVERAGE;
+  const total = tracks.length;
+  const count = (pred: (t: Track) => boolean) =>
+    tracks.filter(pred).length / total;
+  return {
+    id: count(t => Boolean(t.id)),
+    title: count(t => Boolean(t.title)),
+    artist: count(t => Boolean(t.artist)),
+    album: count(t => Boolean(t.album)),
+    durationMs: count(t => t.durationMs > 0),
+    isrc: count(t => Boolean(t.isrc)),
+    genre: count(t => Boolean(t.genre)),
+    bpm: count(t => t.bpm !== undefined && t.bpm > 0),
+    key: count(t => Boolean(t.key)),
+  };
 }

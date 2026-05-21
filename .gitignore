@@ -6,3 +6,8 @@ logs/*
 *.log
 .DS_Store
 config.yaml
+
+# Audio fixtures are too large to track in git
+tests/fixtures/tracks/*.mp3
+tests/fixtures/tracks/*.aiff
+!tests/fixtures/tracks/mp3-without-isrc.mp3

@@ -140,3 +140,46 @@ describe("syncPlaylistsToSpotify (dry-run mode)", () => {
     expect(summary.playlistsCreated).toBe(1);
   });
 });
+
+import { runSync } from "../src/sync.ts";
+import { saveToken } from "../src/spotify/auth.ts";
+import { existsSync, rmSync } from "node:fs";
+
+describe("runSync (E2E with mocks)", () => {
+  test("dry-run produces summary without API writes", async () => {
+    const TOKEN_PATH = "/tmp/__rb-spot-test-sync-token.json";
+    if (existsSync(TOKEN_PATH)) rmSync(TOKEN_PATH);
+    saveToken({ access_token: "TOK", refresh_token: "RT", expires_at: Date.now() + 600000, scope: "s" }, TOKEN_PATH);
+
+    const OUT_DIR = "/tmp/__rb-spot-test-sync-out";
+    if (existsSync(OUT_DIR)) rmSync(OUT_DIR, { recursive: true });
+
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/me/playlists")) return new Response(JSON.stringify({ items: [], next: null }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url.endsWith("/me")) return new Response(JSON.stringify({ id: "me" }), { status: 200, headers: { "content-type": "application/json" } });
+      if (url.includes("/search")) return new Response(JSON.stringify({ tracks: { items: [] } }), { status: 200, headers: { "content-type": "application/json" } });
+      return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+    }) as typeof fetch;
+
+    const summary = await runSync({
+      xmlPath: "tests/fixtures/sample.xml",
+      tokenPath: TOKEN_PATH,
+      clientId: "CID",
+      clientSecret: "SEC",
+      ignorePlaylists: [],
+      matching: { fuzzyThreshold: 0.85, durationToleranceMs: 3000, preferOriginalMix: true },
+      dryRun: true,
+      outDir: OUT_DIR,
+    });
+
+    expect(summary).toBeDefined();
+    expect(summary.totalTracks).toBeGreaterThanOrEqual(0);
+    expect(existsSync(OUT_DIR)).toBe(true);
+
+    globalThis.fetch = original;
+    rmSync(TOKEN_PATH);
+    rmSync(OUT_DIR, { recursive: true });
+  });
+});

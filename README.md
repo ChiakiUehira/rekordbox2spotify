@@ -56,7 +56,7 @@ bun run rb-spot verify --xml ~/Documents/rekordbox.xml
 ### 事前準備
 
 1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) で App を作成
-2. App の Settings → Redirect URIs に `http://localhost:8888/callback` を追加
+2. App の Settings → Redirect URIs に `http://127.0.0.1:8888/callback` を追加
 3. Client ID と Client Secret を取得
 4. `.env.example` を `.env` にコピーして値を埋める:
    ```

@@ -131,11 +131,11 @@ program
   .action(async () => {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-    const redirectUri = process.env.SPOTIFY_REDIRECT_URI ?? "http://localhost:8888/callback";
+    const redirectUri = process.env.SPOTIFY_REDIRECT_URI ?? "http://127.0.0.1:8888/callback";
 
     if (!clientId || !clientSecret) {
       console.error(chalk.red(".env に SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET を設定してください"));
-      console.error("詳細: https://developer.spotify.com/dashboard で App を作成し、Redirect URI に http://localhost:8888/callback を登録");
+      console.error("詳細: https://developer.spotify.com/dashboard で App を作成し、Redirect URI に http://127.0.0.1:8888/callback を登録");
       process.exit(1);
     }
 
@@ -143,11 +143,20 @@ program
     const scopes = ["playlist-modify-private", "playlist-modify-public", "playlist-read-private", "user-read-private"];
     const authUrl = buildAuthorizationUrl({ clientId, redirectUri, state, scopes });
 
-    const port = 8888;
+    let port: number;
+    let callbackPath: string;
+    try {
+      const url = new URL(redirectUri);
+      port = Number(url.port) || (url.protocol === "https:" ? 443 : 80);
+      callbackPath = url.pathname;
+    } catch {
+      console.error(chalk.red(`Invalid SPOTIFY_REDIRECT_URI: ${redirectUri}`));
+      process.exit(1);
+    }
     const tokenPromise = new Promise<{ code: string; state: string }>((resolve, reject) => {
       const server = createServer((req, res) => {
-        const url = new URL(req.url ?? "", `http://localhost:${port}`);
-        if (url.pathname !== "/callback") {
+        const url = new URL(req.url ?? "", `http://127.0.0.1:${port}`);
+        if (url.pathname !== callbackPath) {
           res.writeHead(404);
           res.end("Not Found");
           return;
@@ -175,8 +184,8 @@ program
         resolve({ code, state: returnedState });
         setTimeout(() => server.close(), 1000);
       });
-      server.listen(port, () => {
-        console.log(chalk.green("OK"), `ローカル callback サーバを起動 (port ${port})`);
+      server.listen(port, "127.0.0.1", () => {
+        console.log(chalk.green("OK"), `ローカル callback サーバを起動 (${redirectUri})`);
         console.log("");
         console.log("以下の URL をブラウザで開いて Spotify にログインしてください:");
         console.log(chalk.cyan(authUrl));

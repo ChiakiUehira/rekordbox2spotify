@@ -1,8 +1,8 @@
 # rekordbox2spotify
 
-> rekordbox のプレイリストを Spotify に一方向同期する CLI ツール
+> rekordbox のプレイリストを Spotify に Sync する CLI ツール
 
-DJ プレップで作った rekordbox のプレイリストを、移動中や作業中も Spotify で聴けるようにします。
+rekordbox で管理しているプレイリストを、Spotify 上に同じ構成で作成・同期します。rekordbox 側で曲を追加・削除・並び替えるたびに、次回の sync で Spotify にも反映されます。普段は rekordbox で選曲・整理して、移動中はスマホで Spotify、というワークフローが組めます。
 
 ## 特徴
 

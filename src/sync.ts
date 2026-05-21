@@ -47,3 +47,90 @@ export async function enrichTracks(tracks: TrackWithLocation[]): Promise<Enriche
   }
   return result;
 }
+
+import type { MatchResult, SpotifyPlaylistSummary, SyncSummary, MatchStrategy } from "./types.ts";
+import { buildSpotifyPlaylistName, createPlaylist, replacePlaylistTracks, unfollowPlaylist } from "./spotify/playlist.ts";
+
+export type SyncPlaylistsArgs = {
+  rbPlaylists: Playlist[];
+  matches: Map<string, MatchResult>;
+  existingSpotify: Map<string, SpotifyPlaylistSummary>;
+  myUserId: string;
+  token: string;
+  dryRun: boolean;
+  getCurrentTracks: (playlistId: string) => Promise<string[]>;
+};
+
+function emptyStrategyCounts(): Record<MatchStrategy, number> {
+  return { uri: 0, isrc: 0, exact: 0, fuzzy: 0, duration: 0, unmatched: 0 };
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+export async function syncPlaylistsToSpotify(args: SyncPlaylistsArgs): Promise<SyncSummary> {
+  const summary: SyncSummary = {
+    generatedAt: new Date().toISOString(),
+    totalTracks: args.matches.size,
+    matched: 0,
+    unmatched: 0,
+    playlistsCreated: 0,
+    playlistsUpdated: 0,
+    playlistsUnfollowed: 0,
+    playlistsNoop: 0,
+    matchByStrategy: emptyStrategyCounts(),
+  };
+
+  for (const m of args.matches.values()) {
+    summary.matchByStrategy[m.strategy]++;
+    if (m.spotifyUri) summary.matched++;
+    else summary.unmatched++;
+  }
+
+  const desiredNames = new Set<string>();
+
+  for (const rb of args.rbPlaylists) {
+    const spotifyName = buildSpotifyPlaylistName(rb);
+    desiredNames.add(spotifyName);
+    const desiredUris: string[] = [];
+    for (const trackId of rb.trackIds) {
+      const m = args.matches.get(trackId);
+      if (m?.spotifyUri) desiredUris.push(m.spotifyUri);
+    }
+
+    const existing = args.existingSpotify.get(spotifyName);
+    if (existing) {
+      const current = await args.getCurrentTracks(existing.id);
+      if (arraysEqual(current, desiredUris)) {
+        summary.playlistsNoop++;
+      } else {
+        summary.playlistsUpdated++;
+        if (!args.dryRun) {
+          await replacePlaylistTracks(args.token, existing.id, desiredUris);
+        }
+      }
+    } else {
+      summary.playlistsCreated++;
+      if (!args.dryRun) {
+        const newId = await createPlaylist(args.token, args.myUserId, spotifyName, { public: false });
+        if (desiredUris.length > 0) {
+          await replacePlaylistTracks(args.token, newId, desiredUris);
+        }
+      }
+    }
+  }
+
+  for (const [name, summary_pl] of args.existingSpotify) {
+    if (!desiredNames.has(name)) {
+      summary.playlistsUnfollowed++;
+      if (!args.dryRun) {
+        await unfollowPlaylist(args.token, summary_pl.id);
+      }
+    }
+  }
+
+  return summary;
+}

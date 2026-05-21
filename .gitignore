@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+logs/*
+!logs/.gitkeep
+.env
+*.log
+.DS_Store
+bun.lockb

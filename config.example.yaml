@@ -2,11 +2,21 @@ rekordbox:
   source: xml
   xml_path: ~/Documents/rekordbox.xml
   db_path: ~/Library/Pioneer/rekordbox/master.db
-  # Exact-match playlist names to exclude from verify report.
-  # Useful for skipping rekordbox-internal playlists like CUE analysis or Spotify trial residue.
+  # Exact-match playlist names to exclude from sync.
   ignore_playlists:
     - "Trial playlist - Cloud Library Sync"
     - "CUE解析用プレイリスト"
 
+spotify:
+  playlist_prefix: "[RB] "
+  folder_separator: "/"
+  visibility: private
+
+matching:
+  fuzzy_threshold: 0.85
+  duration_tolerance_ms: 3000
+  prefer_original_mix: true
+
 output:
   log_dir: ./logs
+  cache_dir: ./.cache

@@ -11,3 +11,6 @@ config.yaml
 tests/fixtures/tracks/*.mp3
 tests/fixtures/tracks/*.aiff
 !tests/fixtures/tracks/mp3-without-isrc.mp3
+
+# Real-world verify reports (contains personal library data)
+docs/superpowers/verify-reports/

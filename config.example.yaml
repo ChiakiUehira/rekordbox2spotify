@@ -1,0 +1,7 @@
+rekordbox:
+  source: xml
+  xml_path: ~/Documents/rekordbox.xml
+  db_path: ~/Library/Pioneer/rekordbox/master.db
+
+output:
+  log_dir: ./logs

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Command } from "commander";
@@ -11,6 +11,7 @@ import { runSync } from "./sync.ts";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { buildAuthorizationUrl, exchangeCodeForToken, saveToken } from "./spotify/auth.ts";
+import { readUnmatchedCsv } from "./unmatched.ts";
 
 type ConfigYaml = {
   rekordbox?: { xml_path?: string; db_path?: string; ignore_playlists?: string[] };
@@ -254,6 +255,31 @@ program
       console.error(chalk.red("sync が完遂しませんでした:"), e instanceof Error ? e.message : e);
       process.exit(1);
     }
+  });
+
+program
+  .command("unmatched")
+  .description("直近の未マッチ Track CSV を表示")
+  .option("--log-dir <dir>", "ログディレクトリ", "./logs")
+  .action((opts) => {
+    const files = readdirSync(opts.logDir)
+      .filter((f) => f.startsWith("unmatched_") && f.endsWith(".csv"))
+      .sort()
+      .reverse();
+    if (files.length === 0) {
+      console.log("未マッチ CSV はまだありません。`rb-spot sync` を実行してください");
+      process.exit(0);
+    }
+    const latest = files[0];
+    const path = `${opts.logDir}/${latest}`;
+    const rows = readUnmatchedCsv(path);
+    console.log(`${path} (${rows.length} 件)`);
+    console.log("");
+    console.log(chalk.bold("trackId | title | artist | album | strategy"));
+    for (const r of rows) {
+      console.log(`${r.trackId} | ${r.title} | ${r.artist} | ${r.album} | ${r.strategy_tried}`);
+    }
+    process.exit(0);
   });
 
 program.parse();

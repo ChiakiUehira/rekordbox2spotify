@@ -29,6 +29,7 @@ export async function readRekordboxXml(path: string): Promise<XmlVerifyResult> {
       ignoreAttributes: false,
       attributeNamePrefix: "@_",
       isArray: (name) => name === "TRACK" || name === "NODE",
+      throwError: true,
     });
     parsed = parser.parse(xml);
   } catch (e) {

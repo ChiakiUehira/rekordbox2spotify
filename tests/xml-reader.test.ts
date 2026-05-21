@@ -56,3 +56,18 @@ describe("readRekordboxXml — coverage calculation", () => {
     expect(result.metadataCoverage.album).toBeCloseTo(0.8, 2);
   });
 });
+
+describe("readRekordboxXml — error handling", () => {
+  test("returns not_found for non-existent path", async () => {
+    const result = await readRekordboxXml("/tmp/__nonexistent_rekordbox__.xml");
+    expect(result.status).toBe("not_found");
+  });
+
+  test("returns parse_error for malformed XML", async () => {
+    const tmpPath = "/tmp/__rb-spot-test-bad.xml";
+    await Bun.write(tmpPath, "<?xml version");
+    const result = await readRekordboxXml(tmpPath);
+    expect(result.status).toBe("parse_error");
+    expect(result.error).toBeTruthy();
+  });
+});

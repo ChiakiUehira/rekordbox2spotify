@@ -47,3 +47,68 @@ export type VerifyReport = {
   db: DbVerifyResult | null;
   conclusion: string;
 };
+
+// === M1: Spotify =========================================================
+
+export type SpotifyToken = {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;   // Unix ms
+  scope: string;
+};
+
+export type SpotifyTrack = {
+  uri: string;
+  id: string;
+  name: string;
+  artists: { name: string }[];
+  album: { name: string };
+  duration_ms: number;
+  external_ids?: { isrc?: string };
+};
+
+export type SpotifyPlaylistSummary = {
+  id: string;
+  name: string;
+  owner: { id: string };
+  snapshot_id: string;
+  tracks: { total: number };
+};
+
+// === M1: Matching ========================================================
+
+export type EnrichedTrack = Track & {
+  spotifyUriFromLocation?: string;
+  isrcFromId3?: string;
+  resolvedFilePath?: string;
+};
+
+export type MatchStrategy = "uri" | "isrc" | "exact" | "fuzzy" | "duration" | "unmatched";
+
+export type MatchResult = {
+  rekordboxTrackId: string;
+  spotifyUri: string | null;
+  strategy: MatchStrategy;
+  confidence: number;
+  searchedQueries?: string[];
+  candidatesConsidered?: number;
+};
+
+// === M1: Sync ============================================================
+
+export type SyncOptions = {
+  dryRun: boolean;
+  outDir: string;
+};
+
+export type SyncSummary = {
+  generatedAt: string;
+  totalTracks: number;
+  matched: number;
+  unmatched: number;
+  playlistsCreated: number;
+  playlistsUpdated: number;
+  playlistsUnfollowed: number;
+  playlistsNoop: number;
+  matchByStrategy: Record<MatchStrategy, number>;
+};

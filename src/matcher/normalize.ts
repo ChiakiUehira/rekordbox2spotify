@@ -2,7 +2,7 @@ const SUFFIX_PATTERNS = [
   /\s*\([^)]*(?:original|extended|radio|club|outdoor|indoor|long|short|edit|mix|version|remix)[^)]*\)\s*$/i,
 ];
 
-const FEAT_PATTERN = /\s+(?:feat\.|ft\.|featuring)\s+.+$/i;
+const FEAT_PATTERN = /\s+(?:feat\.?|ft\.?|featuring)\s+.+$/i;
 
 const COUNTRY_CODE_PATTERN = /\s*\(([A-Z]{2,3})\)\s*$/;
 

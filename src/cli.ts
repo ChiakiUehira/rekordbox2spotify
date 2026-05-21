@@ -8,6 +8,9 @@ import { parse as parseYaml } from "yaml";
 import { runVerify } from "./verify.ts";
 import type { VerifyReport } from "./types.ts";
 import { runSync } from "./sync.ts";
+import { createServer } from "node:http";
+import { randomBytes } from "node:crypto";
+import { buildAuthorizationUrl, exchangeCodeForToken, saveToken } from "./spotify/auth.ts";
 
 type ConfigYaml = {
   rekordbox?: { xml_path?: string; db_path?: string; ignore_playlists?: string[] };
@@ -120,6 +123,82 @@ function printDigest(report: VerifyReport, outputPaths: { md: string; json: stri
   console.log(chalk.bold("結論:"));
   console.log(report.conclusion);
 }
+
+program
+  .command("init")
+  .description("Spotify OAuth 認証フロー（初回 / リフレッシュトークン再取得）")
+  .action(async () => {
+    const clientId = process.env.SPOTIFY_CLIENT_ID;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+    const redirectUri = process.env.SPOTIFY_REDIRECT_URI ?? "http://localhost:8888/callback";
+
+    if (!clientId || !clientSecret) {
+      console.error(chalk.red(".env に SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET を設定してください"));
+      console.error("詳細: https://developer.spotify.com/dashboard で App を作成し、Redirect URI に http://localhost:8888/callback を登録");
+      process.exit(1);
+    }
+
+    const state = randomBytes(16).toString("hex");
+    const scopes = ["playlist-modify-private", "playlist-modify-public", "playlist-read-private", "user-read-private"];
+    const authUrl = buildAuthorizationUrl({ clientId, redirectUri, state, scopes });
+
+    const port = 8888;
+    const tokenPromise = new Promise<{ code: string; state: string }>((resolve, reject) => {
+      const server = createServer((req, res) => {
+        const url = new URL(req.url ?? "", `http://localhost:${port}`);
+        if (url.pathname !== "/callback") {
+          res.writeHead(404);
+          res.end("Not Found");
+          return;
+        }
+        const code = url.searchParams.get("code");
+        const returnedState = url.searchParams.get("state");
+        const error = url.searchParams.get("error");
+
+        if (error) {
+          res.writeHead(400);
+          res.end(`Authorization error: ${error}`);
+          reject(new Error(`Spotify authorization error: ${error}`));
+          server.close();
+          return;
+        }
+        if (!code || returnedState !== state) {
+          res.writeHead(400);
+          res.end("Missing code or state mismatch");
+          reject(new Error("Missing code or state mismatch"));
+          server.close();
+          return;
+        }
+        res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        res.end("<html><body><h1>認証成功</h1><p>このタブを閉じてターミナルに戻ってください。</p></body></html>");
+        resolve({ code, state: returnedState });
+        setTimeout(() => server.close(), 1000);
+      });
+      server.listen(port, () => {
+        console.log(chalk.green("OK"), `ローカル callback サーバを起動 (port ${port})`);
+        console.log("");
+        console.log("以下の URL をブラウザで開いて Spotify にログインしてください:");
+        console.log(chalk.cyan(authUrl));
+        console.log("");
+      });
+      setTimeout(() => {
+        server.close();
+        reject(new Error("5 分以内に認証が完了しませんでした"));
+      }, 5 * 60 * 1000);
+    });
+
+    try {
+      const { code } = await tokenPromise;
+      const token = await exchangeCodeForToken({ code, redirectUri, clientId, clientSecret });
+      saveToken(token);
+      console.log(chalk.green("OK"), "認証完了。.cache/spotify_token.json に保存しました");
+      console.log("これで `rb-spot sync` が使えます");
+      process.exit(0);
+    } catch (e) {
+      console.error(chalk.red("認証フロー失敗:"), e instanceof Error ? e.message : e);
+      process.exit(1);
+    }
+  });
 
 program
   .command("sync")

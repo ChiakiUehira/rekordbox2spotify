@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "bin": {
-    "rb-spot": "./src/cli.ts"
+    "rekordbox2spotify": "./src/cli.ts"
   },
   "scripts": {
-    "rb-spot": "bun run src/cli.ts",
+    "rekordbox2spotify": "bun run src/cli.ts",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit"
   },

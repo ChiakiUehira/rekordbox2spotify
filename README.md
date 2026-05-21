@@ -2,7 +2,7 @@
 
 rekordbox のプレイリストを Spotify に同期するための CLI ツール（開発中）。
 
-現在は **M0: 検証フェーズ** のみ実装。`rb-spot verify` コマンドで rekordbox XML から取れるメタデータを診断します。
+現在は **M0: 検証フェーズ** のみ実装。`rekordbox2spotify verify` コマンドで rekordbox XML から取れるメタデータを診断します。
 
 ## 必要環境
 
@@ -27,7 +27,7 @@ bun install
 ## 使い方
 
 ```bash
-bun run rb-spot verify --xml ~/Documents/rekordbox.xml
+bun run rekordbox2spotify verify --xml ~/Documents/rekordbox.xml
 ```
 
 ## オプション
@@ -67,7 +67,7 @@ bun run rb-spot verify --xml ~/Documents/rekordbox.xml
 ### 認証 (初回のみ)
 
 ```bash
-bun run rb-spot init
+bun run rekordbox2spotify init
 ```
 
 ブラウザが Spotify 認証ページに飛ぶので、ログイン → 同意。完了すると `.cache/spotify_token.json` にトークンが保存されます。
@@ -76,10 +76,10 @@ bun run rb-spot init
 
 ```bash
 # 計画だけ表示 (推奨初回)
-bun run rb-spot sync --xml ~/Documents/rekordbox.xml --dry-run
+bun run rekordbox2spotify sync --xml ~/Documents/rekordbox.xml --dry-run
 
 # 実行
-bun run rb-spot sync --xml ~/Documents/rekordbox.xml
+bun run rekordbox2spotify sync --xml ~/Documents/rekordbox.xml
 ```
 
 Spotify に `[RB] {playlist_name}` 形式のプレイリストが作成されます。
@@ -95,7 +95,7 @@ Spotify に `[RB] {playlist_name}` 形式のプレイリストが作成されま
 ### 未マッチ曲の確認
 
 ```bash
-bun run rb-spot unmatched
+bun run rekordbox2spotify unmatched
 ```
 
 直近の sync で Spotify にマッチできなかった曲の一覧を表示します。

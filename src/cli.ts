@@ -53,7 +53,7 @@ function resolveDbPath(argPath: string | undefined, cfg: ConfigYaml): string | u
 }
 
 const program = new Command();
-program.name("rb-spot").description("rekordbox to Spotify sync tool").version("0.0.1");
+program.name("rekordbox2spotify").description("rekordbox to Spotify sync tool").version("0.0.1");
 
 program
   .command("verify")
@@ -202,7 +202,7 @@ program
       const token = await exchangeCodeForToken({ code, redirectUri, clientId, clientSecret });
       saveToken(token);
       console.log(chalk.green("OK"), "認証完了。.cache/spotify_token.json に保存しました");
-      console.log("これで `rb-spot sync` が使えます");
+      console.log("これで `rekordbox2spotify sync` が使えます");
       process.exit(0);
     } catch (e) {
       console.error(chalk.red("認証フロー失敗:"), e instanceof Error ? e.message : e);
@@ -272,7 +272,7 @@ program
   .option("--log-dir <dir>", "ログディレクトリ", "./logs")
   .action((opts) => {
     if (!existsSync(opts.logDir)) {
-      console.log("未マッチ CSV はまだありません。`rb-spot sync` を実行してください");
+      console.log("未マッチ CSV はまだありません。`rekordbox2spotify sync` を実行してください");
       process.exit(0);
     }
     const files = readdirSync(opts.logDir)
@@ -280,7 +280,7 @@ program
       .sort()
       .reverse();
     if (files.length === 0) {
-      console.log("未マッチ CSV はまだありません。`rb-spot sync` を実行してください");
+      console.log("未マッチ CSV はまだありません。`rekordbox2spotify sync` を実行してください");
       process.exit(0);
     }
     const latest = files[0];

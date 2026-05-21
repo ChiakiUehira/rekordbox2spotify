@@ -38,15 +38,31 @@ export async function createPlaylist(
   token: string,
   myUserId: string,
   name: string,
-  opts: { public: boolean },
+  opts: { public: boolean; description?: string },
 ): Promise<string> {
   const url = `${SPOTIFY_BASE}/users/${myUserId}/playlists`;
   const data = await spotifyRequest<{ id: string }>(url, {
     method: "POST",
     token,
-    body: { name, public: opts.public },
+    body: {
+      name,
+      public: opts.public,
+      description: opts.description ?? "Synced from rekordbox",
+    },
   });
   return data.id;
+}
+
+export async function updatePlaylistDetails(
+  token: string,
+  playlistId: string,
+  fields: { name?: string; public?: boolean; description?: string },
+): Promise<void> {
+  await spotifyRequest(`${SPOTIFY_BASE}/playlists/${playlistId}`, {
+    method: "PUT",
+    token,
+    body: fields,
+  });
 }
 
 export async function getAllPlaylistTrackUris(

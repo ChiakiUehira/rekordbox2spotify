@@ -49,7 +49,20 @@ export async function enrichTracks(tracks: TrackWithLocation[]): Promise<Enriche
 }
 
 import type { MatchResult, SpotifyPlaylistSummary, SyncSummary, MatchStrategy } from "./types.ts";
-import { buildSpotifyPlaylistName, createPlaylist, replacePlaylistTracks, unfollowPlaylist } from "./spotify/playlist.ts";
+import { buildSpotifyPlaylistName, createPlaylist, replacePlaylistTracks, unfollowPlaylist, updatePlaylistDetails } from "./spotify/playlist.ts";
+
+function buildSyncedDescription(now: Date = new Date()): string {
+  const formatted = now.toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `Last synced: ${formatted} JST`;
+}
 
 export type SyncPlaylistsArgs = {
   rbPlaylists: Playlist[];
@@ -101,21 +114,26 @@ export async function syncPlaylistsToSpotify(args: SyncPlaylistsArgs): Promise<S
       if (m?.spotifyUri) desiredUris.push(m.spotifyUri);
     }
 
+    const description = buildSyncedDescription();
     const existing = args.existingSpotify.get(spotifyName);
     if (existing) {
       const current = await args.getCurrentTracks(existing.id);
-      if (arraysEqual(current, desiredUris)) {
+      const sameTracks = arraysEqual(current, desiredUris);
+      if (sameTracks) {
         summary.playlistsNoop++;
       } else {
         summary.playlistsUpdated++;
-        if (!args.dryRun) {
+      }
+      if (!args.dryRun) {
+        if (!sameTracks) {
           await replacePlaylistTracks(args.token, existing.id, desiredUris);
         }
+        await updatePlaylistDetails(args.token, existing.id, { description });
       }
     } else {
       summary.playlistsCreated++;
       if (!args.dryRun) {
-        const newId = await createPlaylist(args.token, args.myUserId, spotifyName, { public: false });
+        const newId = await createPlaylist(args.token, args.myUserId, spotifyName, { public: false, description });
         if (desiredUris.length > 0) {
           await replacePlaylistTracks(args.token, newId, desiredUris);
         }

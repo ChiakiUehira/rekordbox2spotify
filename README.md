@@ -51,6 +51,69 @@ bun run rb-spot verify --xml ~/Documents/rekordbox.xml
 - rekordbox 6+ の `master.db` は SQLCipher で暗号化されており、本ツールでは読めません（暗号化を検出して報告するのみ）
 - インテリジェントプレイリストは XML 上ではメンバー曲が展開されない場合があります（verify レポートで確認可能）
 
+## M1: Spotify への同期
+
+### 事前準備
+
+1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) で App を作成
+2. App の Settings → Redirect URIs に `http://localhost:8888/callback` を追加
+3. Client ID と Client Secret を取得
+4. `.env.example` を `.env` にコピーして値を埋める:
+   ```
+   SPOTIFY_CLIENT_ID=<your_id>
+   SPOTIFY_CLIENT_SECRET=<your_secret>
+   ```
+
+### 認証 (初回のみ)
+
+```bash
+bun run rb-spot init
+```
+
+ブラウザが Spotify 認証ページに飛ぶので、ログイン → 同意。完了すると `.cache/spotify_token.json` にトークンが保存されます。
+
+### 同期
+
+```bash
+# 計画だけ表示 (推奨初回)
+bun run rb-spot sync --xml ~/Documents/rekordbox.xml --dry-run
+
+# 実行
+bun run rb-spot sync --xml ~/Documents/rekordbox.xml
+```
+
+Spotify に `[RB] {playlist_name}` 形式のプレイリストが作成されます。
+
+### 同期の挙動
+
+- **rekordbox がマスター**: rekordbox 側の状態が Spotify に完全反映されます
+- **追加された曲**: 次回 sync で Spotify に追加
+- **削除された曲**: 次回 sync で Spotify からも削除
+- **プレイリスト削除**: 次回 sync で Spotify 側も unfollow
+- **手動編集**: Spotify 側で手動で曲を追加・削除しても、次回 sync で上書きされます
+
+### 未マッチ曲の確認
+
+```bash
+bun run rb-spot unmatched
+```
+
+直近の sync で Spotify にマッチできなかった曲の一覧を表示します。
+
+### マッチング戦略
+
+1. **URI 直取り** (`Location` が `spotify:track:XXX`): 100% 確実
+2. **ISRC マッチ** (ローカル MP3/AIFF の ID3 タグから): 95% 信頼度
+3. **正規化 Artist+Title 完全一致**: 85% 信頼度
+4. **Levenshtein ファジー** (閾値 0.85 以上)
+
+`config.yaml` の `matching` セクションで閾値を調整できます。
+
+### 既知の制約
+
+- **Spotify Web API はフォルダを操作する API を提供していません**。フォルダ階層は `[RB] Genre/Techno` のように `/` 区切りで命名するだけ。Spotify アプリで手動でフォルダにまとめてください
+- **ローカルファイル以外**（Tidal / Pioneer Cloud カタログ参照のトラック）は ID3 タグが読めないため、Artist+Title マッチのみで処理されます
+
 ## ライセンス
 
 未定

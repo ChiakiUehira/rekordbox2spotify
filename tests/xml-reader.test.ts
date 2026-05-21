@@ -79,3 +79,27 @@ describe("readRekordboxXml — error handling", () => {
     expect(result.error).toContain("DJ_PLAYLISTS");
   });
 });
+
+describe("readRekordboxXml — ignore_playlists option", () => {
+  test("excludes named playlists from all counts and samples", async () => {
+    const result = await readRekordboxXml(FIXTURE, {
+      ignorePlaylists: ["Smart Filter"],
+    });
+    // fixture has 3 playlists (Techno Set, Smart Filter, Genre>House)
+    // with Smart Filter excluded, expect 2 total / 2 normal / 0 intelligent
+    expect(result.playlistCount.total).toBe(2);
+    expect(result.playlistCount.normal).toBe(2);
+    expect(result.playlistCount.intelligent).toBe(0);
+    expect(result.intelligentSample).toHaveLength(0);
+  });
+
+  test("no-op when ignorePlaylists is empty", async () => {
+    const result = await readRekordboxXml(FIXTURE, { ignorePlaylists: [] });
+    expect(result.playlistCount.total).toBe(3);
+  });
+
+  test("no-op when options not provided (backward compat)", async () => {
+    const result = await readRekordboxXml(FIXTURE);
+    expect(result.playlistCount.total).toBe(3);
+  });
+});

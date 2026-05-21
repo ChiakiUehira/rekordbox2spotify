@@ -2,6 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { XMLParser } from "fast-xml-parser";
 import type { Track, Playlist, XmlVerifyResult } from "./types.ts";
 
+export type ReadXmlOptions = {
+  ignorePlaylists?: string[];
+};
+
 const EMPTY_COVERAGE: XmlVerifyResult["metadataCoverage"] = {
   id: 0, title: 0, artist: 0, album: 0, durationMs: 0,
   isrc: 0, genre: 0, bpm: 0, key: 0,
@@ -20,7 +24,10 @@ const PARSE_ERROR = (path: string, error: string): XmlVerifyResult => ({
   ...NOT_FOUND(path), status: "parse_error", error,
 });
 
-export async function readRekordboxXml(path: string): Promise<XmlVerifyResult> {
+export async function readRekordboxXml(
+  path: string,
+  options: ReadXmlOptions = {},
+): Promise<XmlVerifyResult> {
   if (!existsSync(path)) return NOT_FOUND(path);
   let parsed: any;
   try {
@@ -40,7 +47,7 @@ export async function readRekordboxXml(path: string): Promise<XmlVerifyResult> {
   }
 
   const tracks = extractTracks(parsed);
-  const playlists = extractPlaylists(parsed);
+  const playlists = extractPlaylists(parsed, options.ignorePlaylists ?? []);
   const intelligentPlaylists = playlists.filter(p => p.isIntelligent);
   const folderDepthMax = Math.max(0, ...playlists.map(p => p.path.length));
   const sampleStructure = playlists
@@ -87,19 +94,21 @@ function extractTracks(parsed: any): Track[] {
   }));
 }
 
-function extractPlaylists(parsed: any): Playlist[] {
+function extractPlaylists(parsed: any, ignoreList: string[]): Playlist[] {
   const root = parsed?.DJ_PLAYLISTS?.PLAYLISTS?.NODE;
   const rootNode = Array.isArray(root) ? root[0] : root;
   if (!rootNode) return [];
   const results: Playlist[] = [];
-  walkNode(rootNode, [], results);
+  const ignoreSet = new Set(ignoreList);
+  walkNode(rootNode, [], results, ignoreSet);
   return results;
 }
 
-function walkNode(node: any, parentPath: string[], out: Playlist[]): void {
+function walkNode(node: any, parentPath: string[], out: Playlist[], ignoreSet: Set<string>): void {
   const type = String(node?.["@_Type"] ?? "");
   const name = String(node?.["@_Name"] ?? "");
   if (type === "1") {
+    if (ignoreSet.has(name)) return;
     const trackChildren = Array.isArray(node?.TRACK) ? node.TRACK : node?.TRACK ? [node.TRACK] : [];
     const trackIds = trackChildren.map((t: any) => String(t["@_Key"]));
     out.push({
@@ -111,7 +120,7 @@ function walkNode(node: any, parentPath: string[], out: Playlist[]): void {
   if (type === "0") {
     const childPath = name === "ROOT" ? parentPath : [...parentPath, name];
     const children = Array.isArray(node?.NODE) ? node.NODE : node?.NODE ? [node.NODE] : [];
-    for (const child of children) walkNode(child, childPath, out);
+    for (const child of children) walkNode(child, childPath, out, ignoreSet);
   }
 }
 

@@ -9,7 +9,7 @@ import { runVerify } from "./verify.ts";
 import type { VerifyReport } from "./types.ts";
 
 type ConfigYaml = {
-  rekordbox?: { xml_path?: string; db_path?: string };
+  rekordbox?: { xml_path?: string; db_path?: string; ignore_playlists?: string[] };
   output?: { log_dir?: string };
 };
 
@@ -61,6 +61,7 @@ program
     const cfg = loadConfig();
     const xmlPath = rawOpts.skipXml ? undefined : resolveXmlPath(rawOpts.xml, cfg);
     const dbPath = rawOpts.skipDb ? undefined : resolveDbPath(rawOpts.db, cfg);
+    const ignorePlaylists = cfg.rekordbox?.ignore_playlists ?? [];
 
     if (!xmlPath && !dbPath) {
       console.error(chalk.red("XML / DB どちらのパスも解決できませんでした。"));
@@ -73,6 +74,7 @@ program
         xmlPath, dbPath,
         skipXml: rawOpts.skipXml, skipDb: rawOpts.skipDb,
         outDir: rawOpts.outDir,
+        ignorePlaylists,  // NEW
       });
 
       if (!rawOpts.jsonOnly) {

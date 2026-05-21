@@ -11,6 +11,7 @@ export type VerifyOptions = {
   skipXml?: boolean;
   skipDb?: boolean;
   outDir: string;
+  ignorePlaylists?: string[];  // NEW
 };
 
 export type VerifyExecution = {
@@ -20,7 +21,7 @@ export type VerifyExecution = {
 
 export async function runVerify(opts: VerifyOptions): Promise<VerifyExecution> {
   const xml = !opts.skipXml && opts.xmlPath
-    ? await readRekordboxXml(opts.xmlPath)
+    ? await readRekordboxXml(opts.xmlPath, { ignorePlaylists: opts.ignorePlaylists })
     : null;
   const db = !opts.skipDb && opts.dbPath
     ? await probeRekordboxDb(opts.dbPath)

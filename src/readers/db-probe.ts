@@ -1,6 +1,6 @@
 import { existsSync, statSync } from "node:fs";
 import { Database } from "bun:sqlite";
-import type { DbVerifyResult } from "./types.ts";
+import type { DbVerifyResult } from "../types.ts";
 
 export async function probeRekordboxDb(path: string): Promise<DbVerifyResult> {
   if (!existsSync(path)) {

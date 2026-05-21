@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { XMLParser } from "fast-xml-parser";
-import type { Track, Playlist, XmlVerifyResult } from "./types.ts";
+import type { Track, Playlist, XmlVerifyResult } from "../types.ts";
 
 export type ReadXmlOptions = {
   ignorePlaylists?: string[];

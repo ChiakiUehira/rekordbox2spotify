@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readRekordboxXml } from "../src/xml-reader.ts";
+import { readRekordboxXml } from "../src/readers/xml.ts";
 
 const FIXTURE = "tests/fixtures/sample.xml";
 

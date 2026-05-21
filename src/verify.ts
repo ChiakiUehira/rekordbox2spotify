@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { readRekordboxXml } from "./xml-reader.ts";
-import { probeRekordboxDb } from "./db-probe.ts";
+import { readRekordboxXml } from "./readers/xml.ts";
+import { probeRekordboxDb } from "./readers/db-probe.ts";
 import { buildConclusion, renderJson, renderMarkdown } from "./report.ts";
 import type { VerifyReport } from "./types.ts";
 

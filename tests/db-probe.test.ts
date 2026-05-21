@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
-import { probeRekordboxDb } from "../src/db-probe.ts";
+import { probeRekordboxDb } from "../src/readers/db-probe.ts";
 
 describe("probeRekordboxDb", () => {
   test("returns not_found for non-existent path", async () => {

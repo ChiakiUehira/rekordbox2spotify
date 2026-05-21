@@ -33,7 +33,7 @@ describe("matchTrack — multi-stage", () => {
   test("falls back to exact when ISRC misses but exact matches", async () => {
     const restore = mockFetch({
       "GET https://api.spotify.com/v1/search?q=isrc%3AUSRC2&type=track&limit=5": { tracks: { items: [] } },
-      "GET https://api.spotify.com/v1/search?q=track%3A%22test%22+artist%3A%22artist%22&type=track&limit=10": {
+      "GET https://api.spotify.com/v1/search?q=track%3Atest+artist%3Aartist&type=track&limit=10": {
         tracks: { items: [{ uri: "spotify:track:EXACT_HIT", id: "x", name: "Test", artists: [{ name: "Artist" }], album: { name: "x" }, duration_ms: 200000 }] },
       },
     });
@@ -48,7 +48,7 @@ describe("matchTrack — multi-stage", () => {
 
   test("returns unmatched when all strategies fail", async () => {
     const restore = mockFetch({
-      "GET https://api.spotify.com/v1/search?q=track%3A%22noway%22+artist%3A%22nobody%22&type=track&limit=10": { tracks: { items: [] } },
+      "GET https://api.spotify.com/v1/search?q=track%3Anoway+artist%3Anobody&type=track&limit=10": { tracks: { items: [] } },
     });
 
     const t = track({ title: "NoWay", artist: "Nobody" });

@@ -58,4 +58,27 @@ describe("normalizeForMatching", () => {
   test("returns empty string for empty input", () => {
     expect(normalizeForMatching("")).toBe("");
   });
+
+  test("removes trailing 2-letter country code in parens (GB)", () => {
+    expect(normalizeForMatching("FLETCH (GB)")).toBe("fletch");
+  });
+
+  test("removes trailing 3-letter region code (IT)", () => {
+    expect(normalizeForMatching("Artist (IT)")).toBe("artist");
+  });
+
+  test("removes trailing (BR) country code", () => {
+    expect(normalizeForMatching("GREG (BR)")).toBe("greg");
+  });
+
+  test("preserves middle parentheses with codes that are not at the end", () => {
+    // Should not remove (GB) from middle, only end. Although unusual, behavior should be predictable.
+    expect(normalizeForMatching("Foo (GB) Bar")).toBe("foo (gb) bar");
+  });
+
+  test("preserves lowercase parens content (not a country code)", () => {
+    // (extended) etc are handled by SUFFIX_PATTERNS, but a lone (foo) at end should still work
+    // For artist case "Artist (foo)" → "artist (foo)" or "artist"? We choose to NOT strip lowercase parens
+    expect(normalizeForMatching("Artist (rec)")).toBe("artist (rec)");
+  });
 });

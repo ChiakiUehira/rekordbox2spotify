@@ -81,7 +81,7 @@ import type { SpotifyTrack } from "../../src/types.ts";
 describe("tryExactNameStrategy", () => {
   test("returns match when normalized title+artist exact match in results", async () => {
     const restore = mockFetch({
-      "GET https://api.spotify.com/v1/search?q=track%3A%22echoes%22+artist%3A%22chiaki+uehira%22&type=track&limit=10": {
+      "GET https://api.spotify.com/v1/search?q=track%3Aechoes+artist%3Achiaki+uehira&type=track&limit=10": {
         tracks: {
           items: [
             { uri: "spotify:track:E1", id: "E1", name: "Echoes", artists: [{ name: "Chiaki Uehira" }], album: { name: "X" }, duration_ms: 180000 },
@@ -104,7 +104,7 @@ describe("tryExactNameStrategy", () => {
 
   test("returns null when no normalized match", async () => {
     const restore = mockFetch({
-      "GET https://api.spotify.com/v1/search?q=track%3A%22noway%22+artist%3A%22nobody%22&type=track&limit=10": {
+      "GET https://api.spotify.com/v1/search?q=track%3Anoway+artist%3Anobody&type=track&limit=10": {
         tracks: { items: [{ uri: "spotify:track:Z", id: "Z", name: "Different", artists: [{ name: "Else" }], album: { name: "X" }, duration_ms: 100000 }] },
       },
     });
@@ -120,7 +120,7 @@ describe("tryExactNameStrategy", () => {
 describe("tryFuzzyStrategy", () => {
   test("returns highest-similarity match above threshold", async () => {
     const restore = mockFetch({
-      "GET https://api.spotify.com/v1/search?q=track%3A%22close+call%22+artist%3A%22djoko%22&type=track&limit=10": {
+      "GET https://api.spotify.com/v1/search?q=track%3Aclose+call+artist%3Adjoko&type=track&limit=10": {
         tracks: {
           items: [
             { uri: "spotify:track:R1", id: "R1", name: "Close Call (Ray Mono Remix)", artists: [{ name: "DJOKO" }], album: { name: "X" }, duration_ms: 360000 },
@@ -141,7 +141,7 @@ describe("tryFuzzyStrategy", () => {
 
   test("returns null when no candidate above threshold", async () => {
     const restore = mockFetch({
-      "GET https://api.spotify.com/v1/search?q=track%3A%22track%22+artist%3A%22artist%22&type=track&limit=10": {
+      "GET https://api.spotify.com/v1/search?q=track%3Atrack+artist%3Aartist&type=track&limit=10": {
         tracks: {
           items: [
             { uri: "spotify:track:X", id: "X", name: "Completely Different Title Here", artists: [{ name: "Someone Else Entirely" }], album: { name: "Z" }, duration_ms: 100000 },

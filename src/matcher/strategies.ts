@@ -45,7 +45,7 @@ export async function tryIsrcStrategy(
 function buildSearchQuery(title: string, artist: string): string {
   const t = normalizeForMatching(title);
   const a = normalizeForMatching(artist);
-  return `track:"${t}" artist:"${a}"`;
+  return `track:${t} artist:${a}`;
 }
 
 async function searchByName(

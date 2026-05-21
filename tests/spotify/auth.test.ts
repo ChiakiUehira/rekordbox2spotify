@@ -84,4 +84,36 @@ describe("getValidAccessToken", () => {
 
     restore();
   });
+
+  test("persists refreshed token to disk", async () => {
+    saveToken({ access_token: "OLD", refresh_token: "RT", scope: "s", expires_at: Date.now() - 1000 }, TEST_TOKEN_PATH);
+    const restore = mockFetch({
+      "POST https://accounts.spotify.com/api/token": {
+        access_token: "PERSISTED",
+        expires_in: 3600,
+        scope: "s",
+      },
+    });
+
+    await getValidAccessToken({ tokenPath: TEST_TOKEN_PATH, clientId: "CID", clientSecret: "SEC" });
+    const reloaded = loadToken(TEST_TOKEN_PATH);
+    expect(reloaded?.access_token).toBe("PERSISTED");
+    expect(reloaded?.refresh_token).toBe("RT"); // unchanged because response had no refresh_token
+    expect(reloaded?.expires_at).toBeGreaterThan(Date.now());
+
+    restore();
+  });
+
+  test("propagates refresh failure (so CLI can show init guidance)", async () => {
+    saveToken({ access_token: "OLD", refresh_token: "INVALID", scope: "s", expires_at: Date.now() - 1000 }, TEST_TOKEN_PATH);
+
+    const original = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400, headers: { "content-type": "application/json" } })) as typeof fetch;
+
+    await expect(
+      getValidAccessToken({ tokenPath: TEST_TOKEN_PATH, clientId: "CID", clientSecret: "SEC" }),
+    ).rejects.toThrow(/Refresh failed/);
+
+    globalThis.fetch = original;
+  });
 });

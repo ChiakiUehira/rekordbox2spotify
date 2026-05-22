@@ -1,29 +1,31 @@
 # rekordbox2spotify
 
-> rekordbox のプレイリストを Spotify に Sync する CLI ツール
+**English** | [日本語](./README.ja.md)
 
-rekordbox で管理しているプレイリストを、Spotify 上に同じ構成で作成・同期します。rekordbox 側で曲を追加・削除・並び替えるたびに、次回の sync で Spotify にも反映されます。普段は rekordbox で選曲・整理して、移動中はスマホで Spotify、というワークフローが組めます。
+> A CLI tool to sync your rekordbox playlists to Spotify
 
-## 特徴
+Recreates and mirrors the playlists you manage in rekordbox on your Spotify account. Whenever you add, remove, or reorder tracks in rekordbox, the next `sync` propagates those changes to Spotify. Prep your sets in rekordbox, listen on your phone in Spotify — same playlists, same order.
 
-- **多段マッチング戦略** — URI 直取り → ID3 タグの ISRC → 正規化 Artist+Title → Levenshtein ファジー
-- **ID3 直読み** — rekordbox 自身は ISRC を持っていないので、ローカル音声ファイル（MP3/AIFF）から直接 ISRC を読み出してマッチ精度を高める
-- **rekordbox がマスター** — rekordbox 側の状態を Spotify に完全反映。曲を外せば Spotify からも消える
-- **冪等同期** — 何度実行しても結果が収束する。途中で止まっても再実行すれば続きから処理
-- **フォルダ階層対応** — rekordbox の `Genre/Techno` などのフォルダ階層を `[RB] Genre/Techno` のように命名で表現
-- **dry-run モード** — 書き込み前にプランを確認できる
-- **未マッチ CSV 出力** — Spotify に存在しなかった曲を CSV で記録
+## Highlights
 
-## クイックスタート
+- **Multi-stage matching** — direct URI → ID3 ISRC tag → normalized title+artist → Levenshtein fuzzy
+- **Reads ID3 directly** — rekordbox itself doesn't store ISRC, so the tool opens local audio files (MP3/AIFF) and pulls ISRC from ID3 tags to maximize match precision
+- **rekordbox is the master** — Spotify state is overwritten to match rekordbox. Drop a track in rekordbox and it disappears from Spotify next sync
+- **Idempotent** — re-runs converge to the same state. If it crashes mid-sync, just run it again
+- **Folder hierarchy preserved** — rekordbox folders like `Genre/Techno` become `[RB] Genre/Techno` in Spotify naming
+- **Dry-run mode** — preview the plan before any writes
+- **Unmatched CSV** — tracks Spotify doesn't have are written to a CSV for review
 
-### 必要環境
+## Quickstart
 
-- macOS（他 OS は未検証）
+### Requirements
+
+- macOS (other OSes untested)
 - [Bun](https://bun.sh) >= 1.1
-- rekordbox 6 以降
-- Spotify アカウント（無料/有料どちらでも可）
+- rekordbox 6 or later
+- A Spotify account (free or premium)
 
-### 1. インストール
+### 1. Install
 
 ```bash
 git clone https://github.com/ChiakiUehira/rekordbox2spotify.git
@@ -31,113 +33,113 @@ cd rekordbox2spotify
 bun install
 ```
 
-### 2. rekordbox から XML をエクスポート
+### 2. Export the rekordbox XML
 
-rekordbox を開いて「ファイル → ライブラリ → コレクションを XML 形式で書き出し」を実行。デフォルトの出力先は `~/Documents/rekordbox.xml` です。
+In rekordbox: **File → Library → Export Collection as XML**. The default output is `~/Documents/rekordbox.xml`.
 
-設定で「自動エクスポート」を有効にすると、毎回手動操作する必要がなくなります（環境設定 → 詳細 → データベース）。
+You can enable automatic export in **Preferences → Advanced → Database** if you don't want to repeat this every time.
 
-### 3. Spotify Developer App を作成
+### 3. Create a Spotify Developer App
 
-1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) にログイン
-2. **「Create app」** をクリック
-3. フォーム入力：
-   - **App name**: 任意（例: `rekordbox2spotify`）
-   - **App description**: 任意
-   - **Redirect URI**: `http://127.0.0.1:8888/callback`（コピペ推奨）
-   - **APIs used**: **Web API** にチェック
-4. 利用規約に同意して **Save**
-5. 作成された App → **Settings** から **Client ID** と **Client Secret** を取得
+1. Sign in at the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Click **Create app**
+3. Fill the form:
+   - **App name**: anything (e.g. `rekordbox2spotify`)
+   - **App description**: anything
+   - **Redirect URI**: `http://127.0.0.1:8888/callback` (copy verbatim)
+   - **APIs used**: check **Web API**
+4. Accept terms and **Save**
+5. Open the created app → **Settings** and copy the **Client ID** and **Client Secret**
 
-### 4. `.env` を作成
+### 4. Configure `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-`.env` を編集して Client ID / Secret を貼り付け：
+Edit `.env` and paste your credentials:
 
 ```
-SPOTIFY_CLIENT_ID=ここに貼る
-SPOTIFY_CLIENT_SECRET=ここに貼る
+SPOTIFY_CLIENT_ID=your_id_here
+SPOTIFY_CLIENT_SECRET=your_secret_here
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:8888/callback
 ```
 
-### 5. Spotify 認証
+### 5. Authenticate
 
 ```bash
 bun run rekordbox2spotify init
 ```
 
-ブラウザが Spotify 認証ページに飛ぶので、ログインして同意。完了するとトークンが `.cache/spotify_token.json` に保存されます。
+Your browser opens the Spotify consent screen. Log in, approve, and the token is saved to `.cache/spotify_token.json`.
 
-### 6. 同期
+### 6. Sync
 
-まず dry-run で計画を確認：
+Preview first:
 
 ```bash
 bun run rekordbox2spotify sync --xml ~/Documents/rekordbox.xml --dry-run
 ```
 
-問題なさそうなら本番実行：
+When the plan looks right, run for real:
 
 ```bash
 bun run rekordbox2spotify sync --xml ~/Documents/rekordbox.xml
 ```
 
-Spotify に `[RB] {playlist_name}` 形式のプレイリストが作成されます。
+Playlists named `[RB] {playlist_name}` appear in your Spotify account.
 
 ---
 
-## コマンドリファレンス
+## Command reference
 
-### `init` — Spotify OAuth 認証
+### `init` — Spotify OAuth
 
 ```bash
 bun run rekordbox2spotify init
 ```
 
-初回のみ必要。`.cache/spotify_token.json` にリフレッシュトークンが保存されるので、以降は自動でリフレッシュされます。
+Only needed once. A refresh token is stored at `.cache/spotify_token.json` and reused on subsequent runs.
 
-### `sync` — 同期実行
+### `sync` — run sync
 
 ```bash
 bun run rekordbox2spotify sync --xml <path> [--dry-run] [--out-dir <dir>]
 ```
 
-| オプション | 説明 |
+| Option | Description |
 |---|---|
-| `--xml <path>` | rekordbox XML のパス（省略時は `config.yaml` → 既定パス順） |
-| `--dry-run` | 書き込みなしで計画だけ表示 |
-| `--out-dir <dir>` | ログ出力先（既定: `./logs`） |
+| `--xml <path>` | Path to rekordbox XML (falls back to `config.yaml`, then default paths) |
+| `--dry-run` | Print the plan without writing |
+| `--out-dir <dir>` | Where to write logs (default `./logs`) |
 
-### `verify` — XML 診断
+### `verify` — diagnose the XML
 
 ```bash
 bun run rekordbox2spotify verify --xml <path>
 ```
 
-rekordbox XML から取れるメタデータを診断してレポート出力。ISRC カバレッジ、インテリジェントプレイリスト疑い、フォルダ階層などを確認できます。
+Reports what metadata is available in the rekordbox XML — ISRC coverage, intelligent playlist suspects, folder structure, etc.
 
-### `unmatched` — 未マッチ曲の確認
+### `unmatched` — review unmatched tracks
 
 ```bash
 bun run rekordbox2spotify unmatched
 ```
 
-直近の sync で Spotify にマッチできなかった曲一覧を表示します。CSV ファイルは `./logs/unmatched_*.csv` に保存。
+Prints the most recent unmatched-track list. The CSV is also at `./logs/unmatched_*.csv`.
 
 ---
 
-## 設定 (`config.yaml`)
+## Configuration (`config.yaml`)
 
-`config.example.yaml` をコピーして使います：
+Copy `config.example.yaml`:
 
 ```yaml
 rekordbox:
   source: xml
   xml_path: ~/Documents/rekordbox.xml
-  # 同期対象から除外するプレイリスト名（完全一致）
+  # Exact-match playlist names to exclude from sync
   ignore_playlists:
     - "Trial playlist - Cloud Library Sync"
     - "CUE解析用プレイリスト"
@@ -148,9 +150,9 @@ spotify:
   visibility: private
 
 matching:
-  fuzzy_threshold: 0.75       # 0.0〜1.0、低いほど寛容（誤マッチリスク増）
+  fuzzy_threshold: 0.75       # 0.0–1.0, lower is more permissive (higher false-match risk)
   duration_tolerance_ms: 3000
-  prefer_original_mix: true   # 候補が複数ある時 "Original Mix" を優先
+  prefer_original_mix: true   # prefer candidates whose title contains "Original Mix"
 
 output:
   log_dir: ./logs
@@ -159,88 +161,90 @@ output:
 
 ---
 
-## 同期の挙動
+## Sync behavior
 
-| 操作 | 次回 sync 後の Spotify 側 |
+| rekordbox change | What happens on Spotify next sync |
 |---|---|
-| rekordbox で曲追加 | プレイリストに追加 |
-| rekordbox で曲削除 | プレイリストから削除 |
-| rekordbox で曲の順序入れ替え | 順序も反映 |
-| rekordbox でプレイリスト削除 | Spotify 側も unfollow（プレイリスト自体は残るが自分のライブラリから外れる） |
-| rekordbox でプレイリスト名変更 | 古い名前のは unfollow、新しい名前で再作成 |
-| Spotify 側で手動編集 | **次回 sync で上書きされる**（rekordbox がマスター） |
+| Track added | Added to the playlist |
+| Track removed | Removed from the playlist |
+| Track reordered | Order is mirrored |
+| Playlist deleted | Unfollowed on Spotify (the playlist itself still exists on Spotify's servers but disappears from your library) |
+| Playlist renamed | Old name is unfollowed, new name is created |
+| You edit a playlist directly on Spotify | **Overwritten on next sync** — rekordbox is the master |
 
-各プレイリストの description には `Last synced: YYYY-MM-DD HH:MM JST` が記録されるので、最終同期時刻を確認できます。
+Each playlist's description is set to `Last synced: YYYY-MM-DD HH:MM JST` on every run, so you can see when it was last synced.
 
 ---
 
-## マッチング戦略
+## Matching strategy
 
-各曲ごとに以下の順で試行し、ヒットしたら次の曲へ：
+For each track, strategies are tried in order; the first hit wins:
 
-| 順 | 戦略 | 内容 | 信頼度 |
+| # | Strategy | What it does | Confidence |
 |---:|---|---|---:|
-| 1 | **URI 直取り** | rekordbox の Location が `spotify:track:XXX`（Spotify連携曲） | 1.00 |
-| 2 | **ISRC マッチ** | ローカル音声ファイルの ID3 タグから ISRC を取得 → Spotify isrc検索 | 0.95 |
-| 3 | **正規化 Exact** | タイトル/アーティストを正規化（`(Original Mix)` `feat.` `(GB)` 等を除去）して完全一致 | 0.85 |
-| 4 | **Fuzzy** | Levenshtein 類似度が閾値以上の最高スコア候補 | 0.75〜0.99 |
-| 5 | **Duration tiebreaker** | 候補が同点なら再生時間 ±3秒 で絞り込み + `prefer_original_mix` 適用 | — |
+| 1 | **Direct URI** | rekordbox `Location` is `spotify:track:XXX` (Spotify-linked track) | 1.00 |
+| 2 | **ISRC** | Read ID3 tag from the local audio file → Spotify isrc search | 0.95 |
+| 3 | **Normalized exact** | Normalize title/artist (strip `(Original Mix)`, `feat.`, `(GB)`, etc.) and look for an exact match | 0.85 |
+| 4 | **Fuzzy** | Levenshtein similarity, pick the highest above threshold | 0.75–0.99 |
+| 5 | **Duration tiebreaker** | When candidates tie, prefer ones within ±3 s of target duration, plus `prefer_original_mix` | — |
 
-すべて失敗した曲は `logs/unmatched_*.csv` に記録されます。
+Tracks that fail all strategies end up in `logs/unmatched_*.csv`.
 
-### 正規化ルール
+### Normalization rules
 
-タイトル末尾サフィックス、`feat.`/`ft.`/`featuring` 句、アーティスト末尾の国コード `(GB)` `(IT)` 等を除去：
+Strips title suffixes, `feat./ft./featuring` clauses, trailing `(GB)`/`(IT)` country codes on artists:
 
-| 入力 | 正規化後 |
+| Input | Normalized |
 |---|---|
 | `Echoes (Original Mix)` | `echoes` |
 | `Track feat. Someone (Extended Mix)` | `track` |
 | `FLETCH (GB)` | `fletch` |
-| `Ｅｃｈｏｅｓ` | `echoes` |
+| `Ｅｃｈｏｅｓ` (full-width) | `echoes` |
 
 ---
 
-## 既知の制約
+## Known limitations
 
-### Spotify Web API の制約
+### Spotify Web API constraints
 
-- **フォルダ操作 API がない**：Spotify はプレイリストフォルダを Web API で操作する手段を提供していません。階層は `[RB] Genre/Techno` のように命名で表現するのみ。フォルダ整理は Spotify アプリで手動で行ってください
-- **真に秘密なプレイリストは作れない**：`public: false` で作成しても、URL を知っていれば誰でもアクセス可能（Spotify の仕様）
+- **No folder API** — Spotify doesn't expose playlist folders through the Web API. Hierarchy is only expressed in the playlist name (e.g. `[RB] Genre/Techno`). Use the Spotify app to organize them into folders manually
+- **No truly private playlists** — even with `public: false`, anyone with the URL can access the playlist (Spotify's design)
 
-### rekordbox の制約
+### rekordbox constraints
 
-- **rekordbox は ISRC をサポートしていない**：rekordbox の UI にも XML にも ISRC が出力されません。本ツールはローカルファイルの ID3 タグから直接読み取って補完します
-- **`master.db` は SQLCipher で暗号化**：rekordbox 6 以降の DB は本ツールでは読めません。XML エクスポートが必須です
+- **rekordbox doesn't store ISRC** — neither in the UI nor in the XML export. This tool reads ID3 tags from the underlying audio files to recover ISRC
+- **`master.db` is SQLCipher-encrypted** — rekordbox 6+ databases are not readable by this tool. XML export is required
 
-### Spotify に存在しない曲
+### Tracks not on Spotify
 
-Bandcamp 限定リリース / 自Dub / レーベル限定エディット / 古いブートレグなどは Spotify に存在しないため unmatched 行きになります。`logs/unmatched_*.csv` で確認できます。
+Bandcamp exclusives, self-released dubs, label-only edits, old bootlegs, etc. simply aren't on Spotify and will land in unmatched. Check `logs/unmatched_*.csv` to review them.
 
 ---
 
-## トラブルシューティング
+## Troubleshooting
 
-### `Spotify トークン未取得です` エラー
+### `Spotify トークン未取得です` / "Spotify token missing"
+
+Run:
 
 ```bash
 bun run rekordbox2spotify init
 ```
 
-を実行してください。初回認証またはトークン再取得が必要です。
+You either haven't authenticated yet or need to re-auth.
 
-### マッチ率が低い
+### Low match rate
 
-1. `config.yaml` の `matching.fuzzy_threshold` を下げる（既定 0.75 → 0.65）。ただし誤マッチリスクが上がります
-2. `unmatched` で内訳を確認：Bandcamp 系が大半なら諦め、表記揺れなら閾値調整で救える可能性
+1. Lower `matching.fuzzy_threshold` in `config.yaml` (default 0.75 → 0.65). Increases false-match risk
+2. Run `unmatched` and inspect: if most are Bandcamp, there's nothing to do; if many are naming-variant misses, lowering the threshold may help
 
-### `[RB]` プレイリストが Public 表示になる
+### `[RB]` playlists show as Public
 
-Spotify アプリで「Settings → Social → Automatic new playlists are public」を **OFF** にしてください。API で `public: false` を送っても、この設定がオンだと上書きされる場合があります。
+Disable **Settings → Social → Automatic new playlists are public** in the Spotify app. With it on, Spotify overrides `public: false` from the API.
 
-### dry-run で何も起こらない
+### Nothing happens with `--dry-run`
 
-これは正常です。`--dry-run` を外して本番実行してください。
+That's normal. `--dry-run` only prints the plan. Remove the flag to actually write:
 
 ```bash
 bun run rekordbox2spotify sync --xml ~/Documents/rekordbox.xml
@@ -248,51 +252,51 @@ bun run rekordbox2spotify sync --xml ~/Documents/rekordbox.xml
 
 ---
 
-## 開発者向け
+## For developers
 
-### ローカル開発
+### Local dev
 
 ```bash
 bun install
-bun test            # 全テスト実行
-bun run typecheck   # 型チェック
+bun test            # run all tests
+bun run typecheck   # type check
 ```
 
-### アーキテクチャ
+### Architecture
 
 ```
 src/
-├── cli.ts                  # commander エントリ
-├── verify.ts               # XML 診断
-├── sync.ts                 # 同期オーケストレーション
+├── cli.ts                  # commander entrypoint
+├── verify.ts               # XML diagnosis
+├── sync.ts                 # sync orchestration
 ├── readers/
-│   ├── xml.ts              # rekordbox XML パーサ
-│   ├── db-probe.ts         # master.db 診断
-│   └── id3.ts              # ID3 タグ → ISRC 抽出
+│   ├── xml.ts              # rekordbox XML parser
+│   ├── db-probe.ts         # master.db diagnostic
+│   └── id3.ts              # ID3 tag → ISRC extractor
 ├── spotify/
-│   ├── auth.ts             # OAuth + トークン管理
-│   ├── client.ts           # API クライアント (rate limit + retry)
-│   └── playlist.ts         # プレイリスト CRUD
+│   ├── auth.ts             # OAuth + token management
+│   ├── client.ts           # API client (rate limit + retry)
+│   └── playlist.ts         # playlist CRUD
 ├── matcher/
-│   ├── normalize.ts        # 文字列正規化
-│   ├── strategies.ts       # 各マッチング戦略
-│   └── index.ts            # 多段オーケストレーション
-├── unmatched.ts            # CSV 入出力
-├── report.ts               # verify レポート出力
-└── types.ts                # 共通型定義
+│   ├── normalize.ts        # string normalization
+│   ├── strategies.ts       # individual matching strategies
+│   └── index.ts            # multi-stage orchestration
+├── unmatched.ts            # CSV I/O
+├── report.ts               # verify report rendering
+└── types.ts                # shared types
 ```
 
-### 設計ドキュメント
+### Design docs
 
-- M0 設計: [`docs/superpowers/specs/2026-05-21-rb-spot-m0-design.md`](docs/superpowers/specs/2026-05-21-rb-spot-m0-design.md)
-- M1 設計: [`docs/superpowers/specs/2026-05-21-rb-spot-m1-design.md`](docs/superpowers/specs/2026-05-21-rb-spot-m1-design.md)
+- M0 design: [`docs/superpowers/specs/2026-05-21-rb-spot-m0-design.md`](docs/superpowers/specs/2026-05-21-rb-spot-m0-design.md)
+- M1 design: [`docs/superpowers/specs/2026-05-21-rb-spot-m1-design.md`](docs/superpowers/specs/2026-05-21-rb-spot-m1-design.md)
 
-### コントリビューション
+### Contributing
 
-Issue / PR 歓迎。バグ報告や機能リクエストは [GitHub Issues](https://github.com/ChiakiUehira/rekordbox2spotify/issues) へ。
+Issues and PRs welcome. Bug reports and feature requests go to [GitHub Issues](https://github.com/ChiakiUehira/rekordbox2spotify/issues).
 
 ---
 
-## ライセンス
+## License
 
 [MIT License](LICENSE)

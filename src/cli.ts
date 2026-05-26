@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Command } from "commander";
@@ -12,6 +12,34 @@ import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { buildAuthorizationUrl, exchangeCodeForToken, saveToken } from "./spotify/auth.ts";
 import { readUnmatchedCsv } from "./unmatched.ts";
+
+const ENV_TEMPLATE = `SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:8888/callback
+`;
+
+const CONFIG_TEMPLATE = `rekordbox:
+  source: xml
+  xml_path: ~/Documents/rekordbox.xml
+  # Exact-match playlist names to exclude from sync
+  ignore_playlists:
+    - "Trial playlist - Cloud Library Sync"
+    - "CUE解析用プレイリスト"
+
+spotify:
+  playlist_prefix: "[RB] "
+  folder_separator: "/"
+  visibility: private
+
+matching:
+  fuzzy_threshold: 0.75
+  duration_tolerance_ms: 3000
+  prefer_original_mix: true
+
+output:
+  log_dir: ./logs
+  cache_dir: ./.cache
+`;
 
 type ConfigYaml = {
   rekordbox?: { xml_path?: string; db_path?: string; ignore_playlists?: string[] };
@@ -293,6 +321,33 @@ program
       console.log(`${r.trackId} | ${r.title} | ${r.artist} | ${r.album} | ${r.strategy_tried}`);
     }
     process.exit(0);
+  });
+
+program
+  .command("init-workspace")
+  .description("カレントディレクトリに .env.example と config.example.yaml を作成")
+  .action(() => {
+    const targets = [
+      { file: ".env.example", content: ENV_TEMPLATE },
+      { file: "config.example.yaml", content: CONFIG_TEMPLATE },
+    ];
+
+    for (const t of targets) {
+      if (existsSync(t.file)) {
+        console.log(chalk.yellow("SKIP"), `${t.file} は既に存在します`);
+      } else {
+        writeFileSync(t.file, t.content, "utf-8");
+        console.log(chalk.green("OK"), `${t.file} を作成しました`);
+      }
+    }
+
+    console.log("");
+    console.log(chalk.bold("次のステップ:"));
+    console.log("  1. cp .env.example .env");
+    console.log("  2. .env を編集して Spotify Client ID/Secret を貼り付け");
+    console.log("  3. config.example.yaml を config.yaml にコピーして必要に応じて編集");
+    console.log("  4. rekordbox2spotify init");
+    console.log("  5. rekordbox2spotify sync --xml ~/Documents/rekordbox.xml --dry-run");
   });
 
 program.parse();

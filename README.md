@@ -27,6 +27,16 @@ Recreates and mirrors the playlists you manage in rekordbox on your Spotify acco
 
 ### 1. Install
 
+#### Via npm (recommended)
+
+```bash
+bun install -g rekordbox2spotify
+mkdir ~/Music/rekordbox-sync && cd ~/Music/rekordbox-sync
+rekordbox2spotify init-workspace
+```
+
+#### From source
+
 ```bash
 git clone https://github.com/ChiakiUehira/rekordbox2spotify.git
 cd rekordbox2spotify

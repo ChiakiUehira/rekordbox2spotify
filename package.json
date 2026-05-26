@@ -16,8 +16,17 @@
     "sync",
     "cli"
   ],
-  "private": true,
   "type": "module",
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "files": [
+    "src",
+    "config.example.yaml",
+    "LICENSE",
+    "README.md",
+    "README.ja.md"
+  ],
   "bin": {
     "rekordbox2spotify": "./src/cli.ts"
   },

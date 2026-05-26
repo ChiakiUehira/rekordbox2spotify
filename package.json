@@ -1,6 +1,6 @@
 {
   "name": "rekordbox2spotify",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sync rekordbox playlists to Spotify with multi-stage matching (ID3 ISRC + normalized title/artist + fuzzy)",
   "license": "MIT",
   "author": "Chiaki Uehira",
@@ -21,15 +21,14 @@
     "bun": ">=1.1.0"
   },
   "files": [
+    "bin",
     "src",
     "config.example.yaml",
     "LICENSE",
     "README.md",
     "README.ja.md"
   ],
-  "bin": {
-    "rekordbox2spotify": "./src/cli.ts"
-  },
+  "bin": "./bin/rekordbox2spotify.mjs",
   "scripts": {
     "rekordbox2spotify": "bun run src/cli.ts",
     "test": "bun test",
